@@ -1,13 +1,10 @@
 #include <Arduino.h>
 
-// https://www.waveshare.com/img/devkit/accBoard/NodeMCU-32S/NodeMCU-32S-details-3.jpg
+// https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
 
 // i2c SDA 21
 // i2c SCL 22
 
-//spi MISO 12
-//spi MOSI 23
-//spi SCK 18
 #define SD_CS 5
 #define SD_CD 17
 
