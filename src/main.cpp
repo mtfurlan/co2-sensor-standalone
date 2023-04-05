@@ -1,12 +1,9 @@
 #include <Arduino.h>
 
 // https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
-
-// i2c SDA 21
-// i2c SCL 22
+// https://cdn.sparkfun.com/assets/5/9/7/4/1/SparkFun_Thing_Plus_ESP32-WROOM_C_schematic2.pdf
 
 #define SD_CS 5
-#define SD_CD 17
 
 #include <SensirionI2CScd4x.h>
 #include <Wire.h>
@@ -43,7 +40,7 @@ void teardownSD(void)
 }
 int initSD(void)
 {
-    if(!SD.begin(SD_CS)) {
+    if (!SD.begin(SD_CS)) {
         Serial.println("Card Mount Failed");
         return 1;
     }
@@ -51,6 +48,16 @@ int initSD(void)
     if(cardType == CARD_NONE) {
         Serial.println("No SD card attached");
         return 1;
+    }
+    Serial.print("SD Card Type: ");
+    if (cardType == CARD_MMC) {
+        Serial.println("MMC");
+    } else if (cardType == CARD_SD) {
+        Serial.println("SDSC");
+    } else if (cardType == CARD_SDHC) {
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
     }
     logFile = SD.open(logFilename, FILE_APPEND, true);
     if(!logFile) {
@@ -63,7 +70,7 @@ int initSD(void)
 void initSDC41(void)
 {
 
-    Wire.begin(SDA, SCL); // default pins
+    Wire.begin();
     scd4x.begin(Wire);
 
 
@@ -100,28 +107,11 @@ void initSDC41(void)
     Serial.println("Waiting for first measurement... (5 sec)");
 }
 
-
-bool checkSD = true;
-void IRAM_ATTR sdChangeISR ()
+void setup()
 {
-    checkSD = true;
-}
-void handleSDMounting()
-{
-    if(digitalRead(SD_CD)) {
-        initSD();
-    } else {
-        teardownSD();
-    }
-}
+    Serial.begin(115200);
 
-void setup(void)
-{
-	Serial.begin(115200);
-
-    pinMode(SD_CD, INPUT_PULLUP);
-    attachInterrupt(SD_CD, sdChangeISR, CHANGE);
-
+    initSD();
     initSDC41();
 
     Serial.println("started");
@@ -170,11 +160,6 @@ void measureCO2()
 }
 
 void loop() {
-    if(checkSD) {
-        checkSD = false;
-        handleSDMounting();
-    }
-
     measureCO2();
     delay(100);
 }
