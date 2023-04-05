@@ -10,6 +10,16 @@
 #include <FS.h>
 #include <SD.h>
 #include <RTClib.h>
+#include <FastLED.h>
+
+#define LED_PIN     2 //Pin 2 on Thing Plus C is connected to WS2812 LED
+#define COLOR_ORDER GRB
+#define CHIPSET     WS2812
+#define NUM_LEDS    1
+
+#define BRIGHTNESS  25
+
+CRGB leds[NUM_LEDS];
 
 SensirionI2CScd4x scd4x;
 RTC_PCF8523 rtc;
@@ -40,6 +50,8 @@ void teardownSD(void)
         logFile.close();
     }
     Serial.println("SD removed");
+    leds[0] = CRGB::Red;
+    FastLED.show();
 }
 int initSD(void)
 {
@@ -68,6 +80,8 @@ int initSD(void)
         return 1;
     }
     Serial.println("SD mounted");
+    leds[0] = CRGB::Green;
+    FastLED.show();
     return 0;
 }
 void initSDC41(void)
@@ -172,9 +186,16 @@ void setup()
 {
     Serial.begin(115200);
 
+    FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
+    FastLED.setBrightness( BRIGHTNESS );
+
+    leds[0] = CRGB::Red;
+    FastLED.show();
+
     initRTC();
     initSD();
     initSDC41();
+
 
     Serial.println("started");
 }
