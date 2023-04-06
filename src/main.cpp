@@ -1,3 +1,4 @@
+#define U8x8_DO_NOT_SET_WIRE_CLOCK
 #include <Arduino.h>
 
 // https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
@@ -11,6 +12,7 @@
 #include <SD.h>
 #include <RTClib.h>
 #include <FastLED.h>
+#include <U8g2lib.h>
 
 #define LED_PIN     2 //Pin 2 on Thing Plus C is connected to WS2812 LED
 #define COLOR_ORDER GRB
@@ -20,6 +22,7 @@
 #define BRIGHTNESS  25
 
 CRGB leds[NUM_LEDS];
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R1, U8X8_PIN_NONE);
 
 SensirionI2CScd4x scd4x;
 RTC_PCF8523 rtc;
@@ -87,7 +90,6 @@ int initSD(void)
 void initSDC41(void)
 {
 
-    Wire.begin();
     scd4x.begin(Wire);
 
 
@@ -113,8 +115,17 @@ void initSDC41(void)
         printSerialNumber(serial0, serial1, serial2);
     }
 
+    //uint16_t sensorStatus = 0;
+    //error = scd4x.performSelfTest(sensorStatus);
+    //if (error) {
+    //    Serial.printf("self test returned %d, sensorStatus: %d\r\n", error, sensorStatus);
+    //} else {
+    //    Serial.println("Self test passed");
+    //}
+
     // Start Measurement
     error = scd4x.startPeriodicMeasurement();
+    //error = scd4x.startLowPowerPeriodicMeasurement();
     if (error) {
         Serial.print("Error trying to execute startPeriodicMeasurement(): ");
         errorToString(error, errorMessage, 256);
@@ -186,11 +197,21 @@ void setup()
 {
     Serial.begin(115200);
 
+    Wire.begin(SDA, SCL);
+
     FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
     FastLED.setBrightness( BRIGHTNESS );
-
     leds[0] = CRGB::Red;
     FastLED.show();
+
+
+    u8g2.begin();
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_inr38_mf);
+    u8g2.setFont(u8g2_font_unifont_t_symbols);
+    u8g2.drawStr(0,30,"No BME");
+    u8g2.drawStr(0,50,"temp 10");
+    u8g2.sendBuffer();
 
     initRTC();
     initSD();
@@ -221,6 +242,7 @@ void measureCO2()
         return;
     }
     if (!isDataReady) {
+        Serial.println("data not ready");
         return;
     }
     error = scd4x.readMeasurement(co2, temperature, humidity);
@@ -232,10 +254,11 @@ void measureCO2()
         Serial.println("Invalid sample detected, skipping.");
     } else {
 
-        DateTime now = rtc.now();
+        static DateTime now = rtc.now();
         int len = snprintf(buf, 256, "%04d-%02d-%02d %02d:%02d:%02d CO2: %d\tTemp: %f\tHumidity: %f\n",
                 now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(),
                 co2, temperature, humidity);
+        //int len = snprintf(buf, 256, "CO2: %d\tTemp: %f\tHumidity: %f\n", co2, temperature, humidity);
         Serial.print(buf);
         Serial.print("\r"); // booo
         if(logFile) {
@@ -248,5 +271,5 @@ void measureCO2()
 
 void loop() {
     measureCO2();
-    delay(100);
+    delay(1000);
 }
