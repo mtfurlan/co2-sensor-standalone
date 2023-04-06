@@ -22,7 +22,7 @@
 
 #define BRIGHTNESS  25
 
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R1, OLED_SCL, OLED_SDA, U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, OLED_SCL, OLED_SDA, U8X8_PIN_NONE);
 CRGB leds[NUM_LEDS];
 
 SensirionI2CScd4x scd4x;
@@ -255,12 +255,16 @@ void measureCO2()
     } else {
 
         static DateTime now = rtc.now();
-        int len = snprintf(buf, 256, "%04d-%02d-%02d %02d:%02d:%02d CO2: %d\tTemp: %f\tHumidity: %f\n",
+        int len = snprintf(buf, 256, "%04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f\n",
                 now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(),
                 co2, temperature, humidity);
         //int len = snprintf(buf, 256, "CO2: %d\tTemp: %f\tHumidity: %f\n", co2, temperature, humidity);
         Serial.print(buf);
         Serial.print("\r"); // booo
+        u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_ncenB08_tr);
+        u8g2.drawStr(0,10,buf);
+        u8g2.sendBuffer();
         if(logFile) {
             logFile.write((uint8_t*)buf, len);
             logFile.flush();
