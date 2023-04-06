@@ -1,10 +1,12 @@
-#define U8x8_DO_NOT_SET_WIRE_CLOCK
 #include <Arduino.h>
 
 // https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
 // https://cdn.sparkfun.com/assets/5/9/7/4/1/SparkFun_Thing_Plus_ESP32-WROOM_C_schematic2.pdf
 
 #define SD_CS 5
+#define LED_PIN     2 //Pin 2 on Thing Plus C is connected to WS2812 LED
+#define OLED_SDA 14
+#define OLED_SCL 32
 
 #include <SensirionI2CScd4x.h>
 #include <Wire.h>
@@ -14,15 +16,14 @@
 #include <FastLED.h>
 #include <U8g2lib.h>
 
-#define LED_PIN     2 //Pin 2 on Thing Plus C is connected to WS2812 LED
 #define COLOR_ORDER GRB
 #define CHIPSET     WS2812
 #define NUM_LEDS    1
 
 #define BRIGHTNESS  25
 
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R1, OLED_SCL, OLED_SDA, U8X8_PIN_NONE);
 CRGB leds[NUM_LEDS];
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R1, U8X8_PIN_NONE);
 
 SensirionI2CScd4x scd4x;
 RTC_PCF8523 rtc;
@@ -206,12 +207,11 @@ void setup()
 
 
     u8g2.begin();
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_inr38_mf);
-    u8g2.setFont(u8g2_font_unifont_t_symbols);
-    u8g2.drawStr(0,30,"No BME");
-    u8g2.drawStr(0,50,"temp 10");
-    u8g2.sendBuffer();
+
+    u8g2.clearBuffer();					// clear the internal memory
+    u8g2.setFont(u8g2_font_ncenB08_tr);	// choose a suitable font
+    u8g2.drawStr(0,10,"Hello World!");	// write something to the internal memory
+    u8g2.sendBuffer();					// transfer internal memory to the display
 
     initRTC();
     initSD();
