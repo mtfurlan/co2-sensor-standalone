@@ -254,7 +254,7 @@ void measureCO2()
         Serial.println("Invalid sample detected, skipping.");
     } else {
 
-        static DateTime now = rtc.now();
+        DateTime now = rtc.now();
         int len = snprintf(buf, 256, "%04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f\n",
                 now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(),
                 co2, temperature, humidity);
