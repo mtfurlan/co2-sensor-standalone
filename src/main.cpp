@@ -269,6 +269,12 @@ void measureCO2()
             logFile.write((uint8_t*)buf, len);
             logFile.flush();
             Serial.println("logged to file");
+            if(leds[0].g) {
+                leds[0] = CRGB::Blue;
+            } else {
+                leds[0] = CRGB::Green;
+            }
+            FastLED.show();
         }
     }
 }
