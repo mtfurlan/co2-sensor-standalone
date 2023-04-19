@@ -116,6 +116,10 @@ void initSDC41(void)
         printSerialNumber(serial0, serial1, serial2);
     }
 
+    //uint16_t calibration = 0;
+    //error = scd4x.getAutomaticSelfCalibration(calibration);
+    //Serial.printf("get auto cal returned %d, cal: %d\r\n", error, calibration);
+
     //uint16_t sensorStatus = 0;
     //error = scd4x.performSelfTest(sensorStatus);
     //if (error) {
@@ -132,8 +136,6 @@ void initSDC41(void)
         errorToString(error, errorMessage, 256);
         Serial.println(errorMessage);
     }
-
-    Serial.println("Waiting for first measurement... (5 sec)");
 }
 
 void initRTC()
@@ -242,9 +244,10 @@ void measureCO2()
         return;
     }
     if (!isDataReady) {
-        Serial.println("data not ready");
+        Serial.print(".");
         return;
     }
+    Serial.println("");
     error = scd4x.readMeasurement(co2, temperature, humidity);
     if (error) {
         Serial.print("Error trying to execute readMeasurement(): ");
@@ -266,15 +269,18 @@ void measureCO2()
         u8g2.drawStr(0,10,buf);
         u8g2.sendBuffer();
         if(logFile) {
-            logFile.write((uint8_t*)buf, len);
+            size_t written = logFile.write((uint8_t*)buf, len);
             logFile.flush();
-            Serial.println("logged to file");
-            if(leds[0].g) {
-                leds[0] = CRGB::Blue;
+            if(written != len) {
+                Serial.printf("wrote wrong length to file, expected %d, wrote %d\r\n", len, written);
             } else {
-                leds[0] = CRGB::Green;
+                if(leds[0].g) {
+                    leds[0] = CRGB::Blue;
+                } else {
+                    leds[0] = CRGB::Green;
+                }
+                FastLED.show();
             }
-            FastLED.show();
         }
     }
 }
