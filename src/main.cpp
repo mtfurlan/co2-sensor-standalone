@@ -9,6 +9,8 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 // https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
 // https://cdn.sparkfun.com/assets/5/9/7/4/1/SparkFun_Thing_Plus_ESP32-WROOM_C_schematic2.pdf
@@ -29,6 +31,8 @@ const char* host = "192.168.1.235";
 
 char buf[256];
 File logFile;
+WiFiUDP ntpUDP;
+NTPClient* timeClient;
 
 #define COLOR_ORDER GRB
 #define CHIPSET     WS2812
@@ -108,7 +112,18 @@ void loop() {
         wifiConnected = true;
         Serial.print("wifi connected: ");
         Serial.println(WiFi.localIP());
+        Serial.println(WiFi.gatewayIP());
+        timeClient = new NTPClient(ntpUDP, WiFi.gatewayIP());
+        timeClient->begin();
         //resolve_mdns_host("co2");
+    }
+    if(wifiConnected) {
+        // if we get a new timestamp from ntp
+        if(timeClient->update()) {
+            Serial.print("got NTP time: ");
+            Serial.println(timeClient->getFormattedTime());
+            setRTC(timeClient->getEpochTime());
+        }
     }
     uint16_t co2;
     float temperature;

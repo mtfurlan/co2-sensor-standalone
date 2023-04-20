@@ -2,6 +2,15 @@
 
 RTC_PCF8523 rtc;
 
+bool setRTC(uint32_t newTime) {
+    // if initialized and newTime is within 5 seconds of curren ttime, end
+    if (rtc.initialized() && !rtc.lostPower() && abs((int32_t)rtc.now().unixtime() - (int32_t)newTime) > 5 ) {
+        return false;
+    }
+    Serial.println("setting RTC");
+    rtc.adjust(DateTime(newTime));
+    return true;
+}
 int initRTC()
 {
     if (! rtc.begin()) {
@@ -12,12 +21,13 @@ int initRTC()
     DateTime compiled = DateTime(F(__DATE__), F(__TIME__));
     Serial.printf("compiled at %04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f\r\n",
             compiled.year(), compiled.month(), compiled.day(), compiled.hour(), compiled.minute(), compiled.second());
+    DateTime adjusted = compiled + TimeSpan(0,4,0,0); // adjust for timezone
+    setRTC(adjusted.unixtime());
 
     if (! rtc.initialized() || rtc.lostPower()) {
         Serial.println("RTC is NOT initialized, set time from compiled time!");
         // When time needs to be set on a new device, or after a power loss, the
         // following line sets the RTC to the date & time this sketch was compiled
-        DateTime adjusted = compiled + TimeSpan(0,4,0,0); // adjust for timezone
         rtc.adjust(adjusted);
         // This line sets the RTC with an explicit date & time, for example to set
         // January 21, 2014 at 3am you would call:
@@ -28,13 +38,6 @@ int initRTC()
         // crystal oscillator time to stabilize. If you call adjust() very quickly
         // after the RTC is powered, lostPower() may still return true.
     }
-
-    // When time needs to be re-set on a previously configured device, the
-    // following line sets the RTC to the date & time this sketch was compiled
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
 
     // When the RTC was stopped and stays connected to the battery, it has
     // to be restarted by clearing the STOP bit. Let's do this to ensure
