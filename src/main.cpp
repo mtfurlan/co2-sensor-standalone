@@ -6,6 +6,10 @@
 #include "rtc.h"
 #include "sd.h"
 
+#include <WiFi.h>
+#include <ESPmDNS.h>
+#include <HTTPClient.h>
+
 // https://cdn.sparkfun.com/assets/learn_tutorials/8/5/2/ESP32ThingPlusV20.pdf
 // https://cdn.sparkfun.com/assets/5/9/7/4/1/SparkFun_Thing_Plus_ESP32-WROOM_C_schematic2.pdf
 
@@ -14,6 +18,13 @@
 #define OLED_SDA 14
 #define OLED_SCL 32
 char logFilename[] = "/log";
+
+
+const char* ssid = "node42";
+const char* password =  "we do what we must, because we can";
+
+const char* host = "192.168.1.235";
+
 
 
 char buf[256];
@@ -27,6 +38,28 @@ CRGB leds[NUM_LEDS];
 
 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, OLED_SCL, OLED_SDA, U8X8_PIN_NONE);
+
+
+
+void resolve_mdns_host(const char * host_name)
+{
+    Serial.printf("Query A: %s.local\r\n", host_name);
+
+    esp_ip4_addr_t addr;
+    addr.addr = 0;
+
+    esp_err_t err = mdns_query_a(host_name, 2000,  &addr);
+    if(err){
+        if(err == ESP_ERR_NOT_FOUND){
+            Serial.println("Host was not found!");
+            return;
+        }
+        Serial.println("Query Failed");
+        return;
+    }
+
+    printf(IPSTR, IP2STR(&addr));
+}
 
 void setup()
 {
@@ -47,6 +80,10 @@ void setup()
     u8g2.drawStr(0,10,"Hello World!");	// write something to the internal memory
     u8g2.sendBuffer();					// transfer internal memory to the display
 
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+
     uint8_t rc = 0;
     rc |= initRTC();
     rc |= initSD(SD_CS, logFilename, &logFile);
@@ -65,7 +102,14 @@ void setup()
 
 
 
+bool wifiConnected = false;
 void loop() {
+    if (!wifiConnected && WiFi.status() == WL_CONNECTED) {
+        wifiConnected = true;
+        Serial.print("wifi connected: ");
+        Serial.println(WiFi.localIP());
+        //resolve_mdns_host("co2");
+    }
     uint16_t co2;
     float temperature;
     float humidity;
@@ -95,6 +139,23 @@ void loop() {
                 }
                 FastLED.show();
             }
+        }
+        if(wifiConnected) {
+
+#define INFLUX_HOST "http://co2.local:8086"
+#define INFLUX_ORG "c03eba1974105e33"
+#define INFLUX_BUCKET "co2"
+#define INFLUX_TOKEN "jIq50k_ijcDotF5yvA41C2MJqo91zDaoOAw7PFxCvA11x8kVBdoSf28RKaUOVgJnInqNEfdQSRpqPVi6NEVbsg=="
+            HTTPClient http;
+            http.begin(INFLUX_HOST "/api/v2/write?org=" INFLUX_ORG "&bucket=" INFLUX_BUCKET "&precision=s");
+            http.addHeader("Authorization", "Token " INFLUX_TOKEN);
+            //--header "Content-Type: text/plain; charset=utf-8"
+            //--header "Accept: application/json"
+            // https://docs.influxdata.com/influxdb/v2.7/get-started/write/#line-protocol-element-parsing
+            sprintf(buf, "co2,room=i3party temp=%f,hum=%f,co2=%d %d", temperature, humidity, co2, utc.unixtime());
+            Serial.println(buf);
+            int rc = http.POST(buf);
+            Serial.printf("HTTP POST response code %d\r\n", rc);
         }
     }
     delay(1000);
