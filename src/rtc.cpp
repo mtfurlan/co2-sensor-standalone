@@ -9,12 +9,16 @@ int initRTC()
         Serial.flush();
         return 1;
     }
+    DateTime compiled = DateTime(F(__DATE__), F(__TIME__));
+    Serial.printf("compiled at %04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f\r\n",
+            compiled.year(), compiled.month(), compiled.day(), compiled.hour(), compiled.minute(), compiled.second());
 
     if (! rtc.initialized() || rtc.lostPower()) {
-        Serial.println("RTC is NOT initialized, let's set the time!");
+        Serial.println("RTC is NOT initialized, set time from compiled time!");
         // When time needs to be set on a new device, or after a power loss, the
         // following line sets the RTC to the date & time this sketch was compiled
-        rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+        DateTime adjusted = compiled + TimeSpan(0,4,0,0); // adjust for timezone
+        rtc.adjust(adjusted);
         // This line sets the RTC with an explicit date & time, for example to set
         // January 21, 2014 at 3am you would call:
         // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));

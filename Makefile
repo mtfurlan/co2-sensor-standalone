@@ -5,6 +5,11 @@ help:   ## Show this help.
 .PHONY: build
 build: ## build
 	pio run
+
 .PHONY: flash
 flash: ## flash the board
 	pio run -t upload
+
+.PHONY: clean
+clean: ## clean
+	pio run -t clean

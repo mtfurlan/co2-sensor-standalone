@@ -70,7 +70,8 @@ void loop() {
     float temperature;
     float humidity;
     if(measureCO2(&co2, &temperature, &humidity)) {
-        DateTime now = rtc.now();
+        DateTime utc = rtc.now();
+        DateTime now = utc - TimeSpan(0,4,0,0); // adjust for timezone
         int len = snprintf(buf, 256, "%04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f\n",
                 now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second(),
                 co2, temperature, humidity);
